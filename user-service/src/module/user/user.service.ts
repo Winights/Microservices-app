@@ -1,17 +1,21 @@
 import * as crypto from 'node:crypto';
 import * as argon from 'argon2';
-import { ConflictException, Injectable, NotFoundException, } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, Inject, } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserRepository } from './user.repository';
 import { GetUserFilterDto } from './dto/get-users-filter.dto';
 import { UserDto } from './dto/user.dto';
 import { UpdateUserDto } from './dto/update-user.dto'
 import { SignInDto } from './dto/sign-in.dto';
+import Redis from 'ioredis';
+import { REDIS_TOKEN } from '../../config/redis/redis.constant';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
+    @Inject(REDIS_TOKEN)
+    private readonly redis: Redis,
   ) {}
 
   async create(user: CreateUserDto) {
@@ -80,6 +84,14 @@ async verification(
 }
 
   async remove(id: string) {
+  const user = await this.userRepository.findById(id);
+
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  await this.redis.del(user.login);
+
   return this.userRepository.deleteUser(id);
 }
 }

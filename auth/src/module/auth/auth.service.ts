@@ -1,11 +1,12 @@
-import { Injectable, NotFoundException, UnauthorizedException, } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InternalAccountService } from '../../internal/account/account.service';
 import { SignInDto } from './dto/sign-in.dto';
-import { JwtDto } from './dto/jwt.dto';
+import { JwtDto, RefreshJwtDto } from './dto/jwt.dto';
 import type { StringValue } from 'ms';
-import { RefreshJwtDto } from './dto/jwt.dto';
+import Redis from 'ioredis';
+import { REDIS_TOKEN } from '../../config/redis/redis.constant';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +14,8 @@ export class AuthService {
     private readonly accountService: InternalAccountService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    @Inject(REDIS_TOKEN)
+    private readonly redis: Redis,
   ) {}
 
   async login(params: SignInDto): Promise<JwtDto> {
@@ -23,16 +26,27 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    const users =
-      await this.accountService.getUsersByFilters({
+    let userId = await this.redis.get(params.login);
+
+    if (!userId) {
+      const users = await this.accountService.getUsersByFilters({
         login: params.login,
       });
 
-    const user = users.items[0];
+      const user = users.items[0];
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      userId = user.userId;
+
+      await this.redis.set(params.login, userId);
+    }
 
     const payload = {
-      login: user.login,
-      userId: user.userId,
+      login: params.login,
+      userId,
     };
 
     const accessToken = this.jwtService.sign(
