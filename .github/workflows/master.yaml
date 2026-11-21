@@ -6,6 +6,11 @@ on: workflow_dispatch
 jobs:
   stage_dev:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./transaction-service
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
