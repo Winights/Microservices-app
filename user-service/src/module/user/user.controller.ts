@@ -4,6 +4,7 @@ import { GetUserFilterDto } from './dto/get-users-filter.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserService } from './user.service';
 import { SignInDto } from './dto/sign-in.dto';
+import { ChangeBalanceDto } from './dto/change-balance.dto';
 
 @Controller('user')
 export class UserController {
@@ -20,6 +21,11 @@ export class UserController {
     dto.login,
     dto,);
   } 
+
+  @Post('balance')
+  changeBalance(@Body() dto: ChangeBalanceDto): Promise<void> {
+  return this.userService.changeBalance(dto);
+  }
 
   @Get()
   findAll(

@@ -2,9 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './module/app.module';
 import { DocumentBuilder, SwaggerModule, } from '@nestjs/swagger';
+import { MicroserviceOptions } from '@nestjs/microservices';
+import { kafkaOptionsFactory } from './config/kafka/kafka.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.connectMicroservice<MicroserviceOptions>(
+  kafkaOptionsFactory(),
+  );
 
   const config = app.get(ConfigService);
 
@@ -28,6 +34,8 @@ async function bootstrap() {
   );
 
   SwaggerModule.setup('docs', app, document);
+
+  await app.startAllMicroservices();
 
   await app.listen(
     Number(config.get<string>('HTTP_PORT')) || 3000,

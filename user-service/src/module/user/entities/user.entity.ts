@@ -59,4 +59,18 @@ export class UserEntity {
     nullable: false,
   })
   passwordSalt!: string;
+
+  @Column('varchar', {
+    comment: 'Баланс пользователя',
+    nullable: false,
+    default: '0',
+  })
+  balance!: string;
+
+  @Column('boolean', {
+    comment: 'Был ли удален аккаунт',
+    nullable: true,
+    default: false,
+  })
+  isDeleted!: boolean;
 }

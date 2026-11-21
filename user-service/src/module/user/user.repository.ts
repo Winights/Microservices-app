@@ -1,7 +1,16 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository, SelectQueryBuilder, } from 'typeorm';
+import {
+  DeepPartial,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
+
 import { UserEntity } from './entities/user.entity';
-import { CheckExistUserParams, SearchUserParams, } from './user.types';
+import {
+  ChangeBalanceParams,
+  CheckExistUserParams,
+  SearchUserParams,
+} from './user.types';
 
 export class UserRepository {
   constructor(
@@ -26,14 +35,15 @@ export class UserRepository {
   }
 
   async findByLogin(
-  login: string,
-): Promise<UserEntity | null> {
-  return this.userRepository.findOne({
-    where: {
-      login,
-    },
-  });
-}
+    login: string,
+  ): Promise<UserEntity | null> {
+    return this.userRepository.findOne({
+      where: {
+        login,
+        isDeleted: false,
+      },
+    });
+  }
 
   async findAndCount(
     params: SearchUserParams,
@@ -45,25 +55,48 @@ export class UserRepository {
     userId: string,
     params: DeepPartial<UserEntity>,
   ): Promise<void> {
+    const { balance, ...updateUser } = params;
+
     await this.userRepository.update(
       {
         userId,
       },
-      params,
+      updateUser,
+    );
+  }
+
+  async changeBalance(
+    params: ChangeBalanceParams,
+  ): Promise<void> {
+    const { userId, balance } = params;
+
+    await this.userRepository.update(
+      {
+        userId,
+      },
+      {
+        balance,
+      },
     );
   }
 
   async deleteUser(id: string): Promise<void> {
-    await this.userRepository.delete({
-      userId: id,
-    });
+    await this.userRepository.update(
+      {
+        userId: id,
+      },
+      {
+        isDeleted: true,
+      },
+    );
   }
 
   async checkExistUser(
     params: CheckExistUserParams,
     alias = 'user',
   ): Promise<boolean> {
-    const query = this.userRepository.createQueryBuilder(alias);
+    const query =
+      this.userRepository.createQueryBuilder(alias);
 
     query.where(
       `${alias}.login = :login`,
@@ -79,6 +112,13 @@ export class UserRepository {
       },
     );
 
+    query.andWhere(
+      `${alias}.isDeleted = :isDeleted`,
+      {
+        isDeleted: false,
+      },
+    );
+
     const result = await query.getOne();
 
     return !!result;
@@ -90,6 +130,13 @@ export class UserRepository {
   ): SelectQueryBuilder<UserEntity> {
     const query =
       this.userRepository.createQueryBuilder(alias);
+
+    query.andWhere(
+      `${alias}.isDeleted = :isDeleted`,
+      {
+        isDeleted: false,
+      },
+    );
 
     if (params?.userIds?.length) {
       query.andWhere(

@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from '../config/redis/redis.module';
+import { KafkaModule } from '../config/kafka/kafka.module';
 
 @Module({
   imports: [
@@ -11,7 +12,8 @@ import { RedisModule } from '../config/redis/redis.module';
     }),
     DatabaseModule,
     UserModule,
-    RedisModule, 
+    RedisModule,
+    KafkaModule,
   ],
 })
 export class AppModule {}
